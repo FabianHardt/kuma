@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"os/user"
 	"strconv"
 	"strings"
@@ -28,6 +27,7 @@ import (
 	"github.com/spf13/viper"
 	"istio.io/pkg/env"
 
+	"github.com/kumahq/kuma/pkg/core"
 	"github.com/kumahq/kuma/pkg/transparentproxy/istio/tools/istio-iptables/pkg/config"
 	"github.com/kumahq/kuma/pkg/transparentproxy/istio/tools/istio-iptables/pkg/constants"
 	dep "github.com/kumahq/kuma/pkg/transparentproxy/istio/tools/istio-iptables/pkg/dependencies"
@@ -35,6 +35,7 @@ import (
 )
 
 var (
+	log          = core.Log.WithName("fha-test")
 	envoyUserVar = env.RegisterStringVar(constants.EnvoyUser, "istio-proxy", "Envoy proxy username")
 	// Enable interception of DNS.
 	dnsCaptureByAgent = env.RegisterBoolVar("ISTIO_META_DNS_CAPTURE", false,
@@ -105,6 +106,9 @@ func constructConfig() *config.Config {
 		SkipDNSConntrackZoneSplit: viper.GetBool(constants.SkipDNSConntrackZoneSplit),
 	}
 
+	log.Info("FHA-Log", "RedirectDNS", cfg.RedirectDNS)
+	log.Info("FHA-Log", "RedirectAllDNSTraffic", cfg.RedirectAllDNSTraffic)
+
 	// TODO: Make this more configurable, maybe with an allowlist of users to be captured for output instead of a denylist.
 	if cfg.ProxyUID == "" {
 		usr, err := user.Lookup(envoyUserVar.Get())
@@ -123,11 +127,11 @@ func constructConfig() *config.Config {
 	}
 
 	// Kuma modification start
-	enableIPv6, err := shouldEnableIPv6()
+	podIP, err := getLocalIP()
 	if err != nil {
 		panic(err)
 	}
-	cfg.EnableInboundIPv6 = enableIPv6
+	cfg.EnableInboundIPv6 = podIP.To4() == nil
 	// Kuma modification end
 
 	// Lookup DNS nameservers. We only do this if DNS is enabled in case of some obscure theoretical
@@ -162,35 +166,35 @@ func getLocalIP() (net.IP, error) {
 }
 
 // Kuma modification start
-func hasLocalIPv6() (bool, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return false, err
-	}
+// func hasLocalIPv6() (bool, error) {
+// 	addrs, err := net.InterfaceAddrs()
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() == nil {
-			return true, nil
-		}
-	}
-	return false, nil
-}
+// 	for _, a := range addrs {
+// 		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() == nil {
+// 			return true, nil
+// 		}
+// 	}
+// 	return false, nil
+// }
 
-func shouldEnableIPv6() (bool, error) {
-	hasIPv6Address, err := hasLocalIPv6()
-	if !hasIPv6Address || err != nil {
-		return false, err
-	}
+// func shouldEnableIPv6() (bool, error) {
+// 	hasIPv6Address, err := hasLocalIPv6()
+// 	if !hasIPv6Address || err != nil {
+// 		return false, err
+// 	}
 
-	// We are executing this command to work around the problem with COS_CONTAINERD
-	// image which is being used on GKE nodes. This image is missing "ip6tables_nat`
-	// kernel module which is adding `nat` table, so we are checking if this table
-	// exists and if so, we are assuming we can safely proceed with ip6tables
-	// ref. https://github.com/kumahq/kuma/issues/2046
-	err = exec.Command(constants.IP6TABLES, "-t", constants.NAT, "-L").Run()
+// 	// We are executing this command to work around the problem with COS_CONTAINERD
+// 	// image which is being used on GKE nodes. This image is missing "ip6tables_nat`
+// 	// kernel module which is adding `nat` table, so we are checking if this table
+// 	// exists and if so, we are assuming we can safely proceed with ip6tables
+// 	// ref. https://github.com/kumahq/kuma/issues/2046
+// 	err = exec.Command(constants.IP6TABLES, "-t", constants.NAT, "-L").Run()
 
-	return err == nil, nil
-}
+// 	return err == nil, nil
+// }
 
 // Kuma modification end
 
