@@ -27,7 +27,6 @@ import (
 	"github.com/spf13/viper"
 	"istio.io/pkg/env"
 
-	"github.com/kumahq/kuma/pkg/core"
 	"github.com/kumahq/kuma/pkg/transparentproxy/istio/tools/istio-iptables/pkg/config"
 	"github.com/kumahq/kuma/pkg/transparentproxy/istio/tools/istio-iptables/pkg/constants"
 	dep "github.com/kumahq/kuma/pkg/transparentproxy/istio/tools/istio-iptables/pkg/dependencies"
@@ -35,7 +34,6 @@ import (
 )
 
 var (
-	log          = core.Log.WithName("fha-test")
 	envoyUserVar = env.RegisterStringVar(constants.EnvoyUser, "istio-proxy", "Envoy proxy username")
 	// Enable interception of DNS.
 	dnsCaptureByAgent = env.RegisterBoolVar("ISTIO_META_DNS_CAPTURE", false,
@@ -106,9 +104,6 @@ func constructConfig() *config.Config {
 		SkipDNSConntrackZoneSplit: viper.GetBool(constants.SkipDNSConntrackZoneSplit),
 	}
 
-	log.Info("FHA-Log", "RedirectDNS", cfg.RedirectDNS)
-	log.Info("FHA-Log", "RedirectAllDNSTraffic", cfg.RedirectAllDNSTraffic)
-
 	// TODO: Make this more configurable, maybe with an allowlist of users to be captured for output instead of a denylist.
 	if cfg.ProxyUID == "" {
 		usr, err := user.Lookup(envoyUserVar.Get())
@@ -127,25 +122,25 @@ func constructConfig() *config.Config {
 	}
 
 	// Kuma modification start
-	podIP, err := getLocalIP()
+	enableIPv6, err := getLocalIP()
 	if err != nil {
 		panic(err)
 	}
-	cfg.EnableInboundIPv6 = podIP.To4() == nil
+	cfg.EnableInboundIPv6 = enableIPv6.To4() == nil
 	// Kuma modification end
 
 	// Lookup DNS nameservers. We only do this if DNS is enabled in case of some obscure theoretical
 	// case where reading /etc/resolv.conf could fail.
 	if cfg.RedirectDNS {
-		if cfg.RedirectAllDNSTraffic {
-			cfg.DNSServersV4, cfg.DNSServersV6 = []string{"0.0.0.0"}, []string{"::"}
-		} else {
-			dnsConfig, err := dns.ClientConfigFromFile("/etc/resolv.conf")
-			if err != nil {
-				panic(fmt.Sprintf("failed to load /etc/resolv.conf: %v", err))
-			}
-			cfg.DNSServersV4, cfg.DNSServersV6 = SplitV4V6(dnsConfig.Servers)
+		// if cfg.RedirectAllDNSTraffic {
+		// 	cfg.DNSServersV4, cfg.DNSServersV6 = []string{"0.0.0.0"}, []string{"::"}
+		// } else {
+		dnsConfig, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+		if err != nil {
+			panic(fmt.Sprintf("failed to load /etc/resolv.conf: %v", err))
 		}
+		cfg.DNSServersV4, cfg.DNSServersV6 = SplitV4V6(dnsConfig.Servers)
+		// }
 	}
 	return cfg
 }

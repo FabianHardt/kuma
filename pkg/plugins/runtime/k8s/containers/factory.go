@@ -100,7 +100,7 @@ func (i *DataplaneProxyFactory) NewContainer(
 
 	args := []string{
 		"run",
-		"--log-level=info",
+		"--log-level=debug",
 	}
 
 	if cpuCount > 0 {
@@ -164,7 +164,8 @@ func (i *DataplaneProxyFactory) sidecarEnvVars(mesh string, podAnnotations map[s
 	envVars := map[string]kube_core.EnvVar{
 		"KUMA_CONTROL_PLANE_URL": {
 			Name:  "KUMA_CONTROL_PLANE_URL",
-			Value: i.ControlPlaneURL,
+			Value: "https://kuma-control-plane.kuma-cp.svc:5678",
+			// Value: i.ControlPlaneURL,
 		},
 		"KUMA_DATAPLANE_MESH": {
 			Name:  "KUMA_DATAPLANE_MESH",

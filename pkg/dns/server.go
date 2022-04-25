@@ -66,6 +66,7 @@ func (h *SimpleDNSServer) parseQuery(m *dns.Msg) {
 	for _, q := range m.Question {
 		switch q.Qtype {
 		case dns.TypeA, dns.TypeAAAA:
+			q.Qtype = dns.TypeA
 			serverLog.V(1).Info("received a query", "name", q.Name, "type", q.Qtype)
 			ip, err := h.lookup(q.Name)
 			if err != nil {
