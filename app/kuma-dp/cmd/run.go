@@ -222,6 +222,7 @@ func newRunCmd(opts kuma_cmd.RunCmdOpts, rootCtx *RootContext) *cobra.Command {
 				EnvoyVersion:    *envoyVersion,
 				DynamicMetadata: rootCtx.BootstrapDynamicMetadata,
 			})
+			runLog.Info("FHA", "bootstrap", bootstrap)
 			if err != nil {
 				return errors.Errorf("Failed to generate Envoy bootstrap config. %v", err)
 			}

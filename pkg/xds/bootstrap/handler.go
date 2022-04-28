@@ -22,6 +22,7 @@ type BootstrapHandler struct {
 }
 
 func (b *BootstrapHandler) Handle(resp http.ResponseWriter, req *http.Request) {
+	log.Info("FHA", "requestRecieved", req.Body)
 	bytes, err := io.ReadAll(req.Body)
 	if err != nil {
 		log.Error(err, "Could not read a request")
@@ -65,6 +66,7 @@ func (b *BootstrapHandler) Handle(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Set("content-type", "text/x-yaml")
 	resp.WriteHeader(http.StatusOK)
 	_, err = resp.Write(bytes)
+	log.Info("FHA", "responseWritten", resp)
 	if err != nil {
 		logger.Error(err, "Error while writing the response")
 		return

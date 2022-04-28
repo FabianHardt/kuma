@@ -100,7 +100,7 @@ func (i *DataplaneProxyFactory) NewContainer(
 
 	args := []string{
 		"run",
-		"--log-level=info",
+		"--log-level=debug",
 	}
 
 	if cpuCount > 0 {

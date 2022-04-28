@@ -158,6 +158,7 @@ func (s *secrets) get(
 		s.cachedCerts[resourceKey] = certs
 		s.Unlock()
 
+		log.Info("FHA", "certsReady", certs)
 		return certs.identity, certs.ca, nil
 	}
 

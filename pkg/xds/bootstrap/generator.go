@@ -22,6 +22,7 @@ import (
 	"github.com/kumahq/kuma/pkg/core/validators"
 	core_xds "github.com/kumahq/kuma/pkg/core/xds"
 	"github.com/kumahq/kuma/pkg/xds/bootstrap/types"
+
 	// import Envoy protobuf definitions so (un)marshaling Envoy protobuf works in tests (normally it is imported in root.go)
 	envoy_common "github.com/kumahq/kuma/pkg/xds/envoy"
 )
@@ -67,6 +68,7 @@ type bootstrapGenerator struct {
 }
 
 func (b *bootstrapGenerator) Generate(ctx context.Context, request types.BootstrapRequest) (proto.Message, error) {
+	log.Info("FHA", "incomingRequest", request)
 	if err := b.validateRequest(request); err != nil {
 		return nil, err
 	}
@@ -150,6 +152,7 @@ func (b *bootstrapGenerator) Generate(ctx context.Context, request types.Bootstr
 
 	log.WithValues("params", params).Info("Generating bootstrap config")
 	config, err := genConfig(params)
+	log.Info("FHA", "configReady", config)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed creating bootstrap conf")
 	}

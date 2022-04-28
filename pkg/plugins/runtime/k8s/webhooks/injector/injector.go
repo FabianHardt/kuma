@@ -104,6 +104,8 @@ func (i *KumaInjector) InjectKuma(pod *kube_core.Pod) error {
 		pod.Annotations[key] = value
 	}
 
+	log.Info("FHA", "cniEnabled", i.cfg.CNIEnabled)
+
 	// init container
 	if !i.cfg.CNIEnabled {
 		if pod.Spec.InitContainers == nil {

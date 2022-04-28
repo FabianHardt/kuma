@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"strings"
 	"time"
 
@@ -100,9 +101,14 @@ func (d *DpServer) NeedLeaderElection() bool {
 }
 
 func (d *DpServer) handle(writer http.ResponseWriter, request *http.Request) {
+	reqDump, err := httputil.DumpRequest(request, true)
+	log.Info("FHA", "1requestHandled", reqDump)
+	log.Info("FHA", "1requestHandledError", err)
 	if request.ProtoMajor == 2 && strings.Contains(request.Header.Get("Content-Type"), "application/grpc") {
+		log.Info("FHA - if")
 		d.grpcServer.ServeHTTP(writer, request)
 	} else {
+		log.Info("FHA - else")
 		// we only want to measure HTTP not GRPC requests because they can mess up metrics
 		// for example ADS bi-directional stream counts as one really long request
 		std.Handler("", d.promMiddleware, d.httpMux).ServeHTTP(writer, request)

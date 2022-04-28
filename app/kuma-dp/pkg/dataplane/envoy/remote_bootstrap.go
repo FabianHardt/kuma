@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	net_url "net/url"
 	"os"
 	"strings"
@@ -47,6 +48,7 @@ func IsInvalidRequestErr(err error) bool {
 
 func (b *remoteBootstrap) Generate(url string, cfg kuma_dp.Config, params BootstrapParams) (*envoy_bootstrap_v3.Bootstrap, []byte, error) {
 	bootstrapUrl, err := net_url.Parse(url)
+	log.Info("FHA", "bootstrapUrl", bootstrapUrl)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -119,6 +121,8 @@ func (b *remoteBootstrap) requestForBootstrap(url *net_url.URL, cfg kuma_dp.Conf
 	if cfg.DataplaneRuntime.Token != "" {
 		token = cfg.DataplaneRuntime.Token
 	}
+
+	log.Info("FHA", "token", token)
 	request := types.BootstrapRequest{
 		Mesh:      cfg.Dataplane.Mesh,
 		Name:      cfg.Dataplane.Name,
@@ -150,10 +154,15 @@ func (b *remoteBootstrap) requestForBootstrap(url *net_url.URL, cfg kuma_dp.Conf
 	if err != nil {
 		return nil, errors.Wrap(err, "could not marshal request to json")
 	}
+	log.Info("FHA", "request", request)
 	resp, err := b.client.Post(url.String(), "application/json", bytes.NewReader(jsonBytes))
+	log.Info("FHA", "error", err)
 	if err != nil {
+		log.Info("FHA - hier bin ich nicht!")
 		return nil, errors.Wrap(err, "request to bootstrap server failed")
 	}
+	respDump, err := httputil.DumpResponse(resp, true)
+	log.Info("FHA", "responseDump", respDump)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, err := io.ReadAll(resp.Body)
